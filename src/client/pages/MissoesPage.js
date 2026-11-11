@@ -1,0 +1,16 @@
+import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
+import { useState, useEffect } from 'react';
+import { apiRequest } from '../api/client';
+import { Badge, Button } from '../components/UI';
+import { Target, Gift, Clock } from 'lucide-react';
+export function MissoesPage() {
+    const [quests, setQuests] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
+    useEffect(() => {
+        apiRequest('/api/modules/missoes/quests')
+            .then((data) => setQuests(data.quests))
+            .catch(() => setQuests([]))
+            .finally(() => setIsLoading(false));
+    }, []);
+    return (_jsxs("div", { className: "space-y-6 text-left", children: [_jsxs("div", { className: "pb-4 border-b border-zinc-800", children: [_jsxs("h1", { className: "text-xl sm:text-2xl font-bold tracking-tight text-white flex items-center gap-2", children: [_jsx(Target, { className: "w-6 h-6 text-zinc-300" }), "Miss\u00F5es \u2022 Quests com Recompensa"] }), _jsx("p", { className: "text-xs text-zinc-400 mt-1", children: "Objetivos estrat\u00E9gicos com crit\u00E9rios expl\u00EDcitos de entrega, recompensas definidas e aceite respons\u00E1vel." })] }), isLoading ? (_jsxs("div", { className: "space-y-3", children: [_jsx("div", { className: "h-28 rounded-xl bg-zinc-900 animate-pulse" }), _jsx("div", { className: "h-28 rounded-xl bg-zinc-900 animate-pulse" })] })) : quests.length === 0 ? (_jsx("div", { className: "p-12 text-center rounded-xl bg-zinc-900/30 border border-zinc-800 text-xs text-zinc-500", children: "Nenhuma miss\u00E3o ativa dispon\u00EDvel no momento. Novas quests s\u00E3o publicadas periodicamente pela coordena\u00E7\u00E3o." })) : (_jsx("div", { className: "grid grid-cols-1 md:grid-cols-2 gap-4", children: quests.map((q) => (_jsxs("div", { className: "p-5 rounded-xl bg-zinc-900/80 border border-zinc-800 flex flex-col justify-between", children: [_jsxs("div", { children: [_jsxs("div", { className: "flex items-center justify-between mb-2", children: [_jsx(Badge, { variant: "silver", children: "Quest Oficial" }), _jsx(Badge, { variant: q.status === 'aberta' ? 'success' : 'neutral', children: q.status })] }), _jsx("h3", { className: "font-semibold text-sm text-white mb-2", children: q.title }), _jsx("p", { className: "text-xs text-zinc-300 leading-relaxed mb-3", children: q.objective }), _jsxs("div", { className: "p-3 rounded-lg bg-zinc-950 border border-zinc-800 text-[11px] space-y-1.5 text-zinc-400 mb-3", children: [_jsxs("div", { children: [_jsx("span", { className: "font-semibold text-zinc-300", children: "Crit\u00E9rio de Aceite:" }), ' ', q.delivery_criteria] }), _jsxs("div", { className: "flex items-center gap-1.5 text-emerald-400 font-semibold", children: [_jsx(Gift, { className: "w-3.5 h-3.5" }), "Recompensa: ", q.reward_description] })] })] }), _jsxs("div", { className: "pt-3 border-t border-zinc-800/80 flex items-center justify-between text-xs text-zinc-500", children: [_jsxs("span", { className: "flex items-center gap-1", children: [_jsx(Clock, { className: "w-3.5 h-3.5" }), q.deadline ? `Prazo: ${new Date(q.deadline).toLocaleDateString('pt-BR')}` : 'Sem prazo fixo'] }), _jsx(Button, { variant: "outline", size: "sm", onClick: () => alert('Candidatura para esta missão vinculada ao mural da Guilda.'), children: "Ver detalhes" })] })] }, q.id))) }))] }));
+}
