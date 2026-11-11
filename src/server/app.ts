@@ -66,8 +66,8 @@ export function createApp() {
   const clientDistPath = path.resolve(process.cwd(), 'dist/client');
   app.use(express.static(clientDistPath));
 
-  app.get('*', (req, res, next) => {
-    if (req.path.startsWith('/api') || req.path.startsWith('/uploads')) {
+  app.use((req, res, next) => {
+    if (req.method !== 'GET' || req.path.startsWith('/api') || req.path.startsWith('/uploads')) {
       return next();
     }
     const indexHtml = path.join(clientDistPath, 'index.html');
