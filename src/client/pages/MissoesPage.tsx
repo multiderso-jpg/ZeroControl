@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { apiRequest } from '../api/client';
+import { apiRequest } from '../lib/api';
 import { Badge, Button } from '../components/UI';
 import { Target, Gift, Clock, CheckCircle2, ChevronRight } from 'lucide-react';
 

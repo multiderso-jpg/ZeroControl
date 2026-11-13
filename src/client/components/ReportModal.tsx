@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Modal, Button, Textarea, Select } from './UI';
-import { apiRequest } from '../api/client';
+import { apiRequest } from '../lib/api';
 import { ShieldAlert } from 'lucide-react';
 
 interface ReportModalProps {

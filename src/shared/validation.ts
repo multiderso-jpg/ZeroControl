@@ -122,6 +122,14 @@ export const createApplicationSchema = z.object({
   proposed_amount_cents: z.number().int().nonnegative().optional().nullable(),
 });
 
+export const createCommentSchema = z.object({
+  content: z
+    .string()
+    .trim()
+    .min(2, 'O comentário deve conter pelo menos 2 caracteres.')
+    .max(1000, 'O comentário deve ter no máximo 1000 caracteres.'),
+});
+
 export const createReportSchema = z.object({
   post_id: z.string().uuid('ID de publicação inválido.'),
   category: z.string().min(2, 'Selecione uma categoria de denúncia.'),

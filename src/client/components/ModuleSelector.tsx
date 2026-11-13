@@ -37,7 +37,7 @@ export function ModuleSelector() {
       aria-label="As 12 Áreas do Zero Control"
       className="w-full bg-zinc-950/80 backdrop-blur border-b border-zinc-800/80 overflow-x-auto py-2 px-4 scrollbar-none sticky top-14 z-30"
     >
-      <div className="flex items-center gap-1.5 min-w-max mx-auto max-w-7xl">
+      <div className="flex items-center gap-1.5 min-w-max">
         <span className="text-[11px] font-mono uppercase tracking-wider text-zinc-500 mr-2 flex items-center gap-1">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
           Áreas

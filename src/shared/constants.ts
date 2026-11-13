@@ -174,9 +174,8 @@ export const SERVICE_CATEGORIES: readonly ServiceCategoryItem[] = [
 ] as const;
 
 export const INTENTIONS = [
-  'Preciso de um serviço',
   'Ofereço um serviço',
-  'Oportunidade de trabalho',
+  'Oportunidade de serviços',
 ] as const;
 
 export const MODALITIES = ['Remoto', 'Presencial', 'Híbrido'] as const;

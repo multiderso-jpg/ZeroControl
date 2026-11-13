@@ -5,7 +5,6 @@ import { UserAvatar } from './UserAvatar';
 import { Button } from './UI';
 import {
   Menu,
-  PlusCircle,
   User as UserIcon,
   Camera,
   FileText,
@@ -65,9 +64,11 @@ export function Header({
           className="flex items-center gap-2 group text-white tracking-wider"
           aria-label="Zero Control - Início"
         >
-          <div className="w-7 h-7 rounded bg-zinc-100 flex items-center justify-center text-zinc-950 font-mono font-black text-sm group-hover:bg-white transition-colors">
-            0
-          </div>
+          <img
+            src="/icon.png"
+            alt="Zero Control"
+            className="w-7 h-7 rounded object-contain shadow-sm"
+          />
           <div className="flex flex-col">
             <span className="font-bold text-sm tracking-widest text-zinc-100">
               ZERO CONTROL
@@ -82,23 +83,6 @@ export function Header({
       <div className="flex items-center gap-3">
         {user ? (
           <>
-            <Button
-              variant="primary"
-              size="sm"
-              icon={<PlusCircle className="w-4 h-4" />}
-              onClick={onOpenPublishModal}
-              className="hidden sm:inline-flex"
-            >
-              Publicar trabalho
-            </Button>
-
-            <button
-              onClick={onOpenPublishModal}
-              aria-label="Publicar trabalho"
-              className="sm:hidden p-2 rounded-lg bg-zinc-100 text-zinc-950 hover:bg-white"
-            >
-              <PlusCircle className="w-4 h-4" />
-            </button>
 
             {/* Menu do Avatar do Usuário */}
             <div className="relative" ref={dropdownRef}>

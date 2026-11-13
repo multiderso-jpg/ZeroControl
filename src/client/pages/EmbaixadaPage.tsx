@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { apiRequest } from '../api/client';
+import { apiRequest } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import { UserAvatar } from '../components/UserAvatar';
 import { Badge, Button } from '../components/UI';

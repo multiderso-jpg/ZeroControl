@@ -37,9 +37,11 @@ export function LoginPage() {
       <div className="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-2xl p-6 sm:p-8 shadow-2xl text-left">
         {/* Cabeçalho do formulário */}
         <div className="flex items-center gap-2.5 mb-6">
-          <div className="w-8 h-8 rounded bg-zinc-100 flex items-center justify-center text-zinc-950 font-mono font-black text-base">
-            0
-          </div>
+          <img
+            src="/icon.png"
+            alt="Zero Control"
+            className="w-8 h-8 rounded object-contain shadow-md"
+          />
           <div>
             <h1 className="text-lg font-bold tracking-tight text-white">
               Zero Control

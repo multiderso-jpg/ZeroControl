@@ -3,7 +3,7 @@ import multer from 'multer';
 import { PostService } from '../services/postService';
 import { ImageService } from '../services/imageService';
 import { AuthenticatedRequest, requireAuth } from '../middleware/auth';
-import { createPostSchema } from '../../shared/validation';
+import { createPostSchema, createCommentSchema } from '../../shared/validation';
 import { config } from '../config';
 
 const router = Router();
@@ -215,6 +215,54 @@ router.delete('/:id/images/:imageId', requireAuth, async (req: AuthenticatedRequ
     const imageId = req.params.imageId as string;
     await ImageService.deletePostImage(imageId, req.user!.id);
     res.json({ message: 'Foto removida com sucesso.' });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Listar comentários de um Job
+router.get('/:id/comments', async (req, res, next) => {
+  try {
+    const postId = req.params.id as string;
+    const comments = await PostService.listComments(postId);
+    res.json({ comments });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Adicionar comentário em um Job
+router.post('/:id/comments', requireAuth, async (req: AuthenticatedRequest, res, next) => {
+  try {
+    const postId = req.params.id as string;
+    const validated = createCommentSchema.parse(req.body);
+    const comment = await PostService.createComment(postId, req.user!.id, validated.content);
+    res.status(201).json({
+      message: 'Comentário publicado com sucesso!',
+      comment,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Excluir comentário de um Job (autor do comentário ou PhantomTroupe)
+router.delete('/:id/comments/:commentId', requireAuth, async (req: AuthenticatedRequest, res, next) => {
+  try {
+    const commentId = req.params.commentId as string;
+    await PostService.deleteComment(commentId, req.user!.id, req.user!.role, req.user!.username);
+    res.json({ message: 'Comentário excluído com sucesso.' });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Excluir Job (autor do post ou PhantomTroupe)
+router.delete('/:id', requireAuth, async (req: AuthenticatedRequest, res, next) => {
+  try {
+    const postId = req.params.id as string;
+    await PostService.deletePost(postId, req.user!.id, req.user!.role, req.user!.username);
+    res.json({ message: 'Job excluído com sucesso.' });
   } catch (err) {
     next(err);
   }

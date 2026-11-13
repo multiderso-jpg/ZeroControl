@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { apiRequest } from '../api/client';
+import { apiRequest } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import { Button, Input, Textarea, Modal, Badge } from '../components/UI';
 import { Hammer, Sparkles, Send, Clock, Briefcase, FileCheck2 } from 'lucide-react';

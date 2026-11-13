@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Header } from './Header';
 import { Sidebar } from './Sidebar';
-import { ModuleSelector } from './ModuleSelector';
 import { PostModal } from './PostModal';
 import { ProfileModal } from './ProfileModal';
 import { ReportModal } from './ReportModal';
@@ -49,17 +48,14 @@ export function Layout({ children, onPostCreated }: LayoutProps) {
         }}
       />
 
-      {/* Faixa compacta das 12 Áreas */}
-      <ModuleSelector />
-
-      {/* Conteúdo com Sidebar Lateral */}
-      <div className="flex-1 flex max-w-7xl w-full mx-auto">
+      {/* Conteúdo com Sidebar Lateral Encostada na Esquerda */}
+      <div className="flex-1 flex w-full">
         <Sidebar
           mobileOpen={mobileMenuOpen}
           onCloseMobile={() => setMobileMenuOpen(false)}
         />
 
-        <main className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8 overflow-x-hidden">
+        <main className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8 overflow-x-hidden w-full">
           {children}
         </main>
       </div>

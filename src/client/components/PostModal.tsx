@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Modal, Input, Textarea, Select, Button, Badge } from './UI';
-import { apiRequest } from '../api/client';
+import { apiRequest } from '../lib/api';
 import { Post } from '../../shared/types';
 import {
   INTENTIONS,
@@ -23,7 +23,7 @@ export function PostModal({
   onPostCreated,
   originModule = 'guilda',
 }: PostModalProps) {
-  const [intention, setIntention] = useState<string>('Preciso de um serviço');
+  const [intention, setIntention] = useState<string>('Ofereço um serviço');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [opportunityType, setOpportunityType] = useState('freelancer');
@@ -149,8 +149,8 @@ export function PostModal({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Publicar Oportunidade ou Serviço"
-      description="Divulgue suas demandas, serviços autônomos ou oportunidades para os membros da Guilda."
+      title="Publicar Job / Trabalho"
+      description="Divulgue suas demandas, serviços autônomos ou contratações no mural de Job´s."
       maxWidth="2xl"
     >
       <form onSubmit={handleSubmit} className="space-y-4 text-left">
@@ -165,7 +165,7 @@ export function PostModal({
           <label className="text-xs font-medium text-zinc-300 mb-1.5 block">
             Qual é o objetivo desta publicação?
           </label>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {INTENTIONS.map((item) => (
               <button
                 type="button"
@@ -404,7 +404,7 @@ export function PostModal({
             Cancelar
           </Button>
           <Button type="submit" variant="primary" isLoading={isLoading}>
-            Publicar oportunidade
+            Publicar Job
           </Button>
         </div>
       </form>

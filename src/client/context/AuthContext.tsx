@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { SafeUser, UserProfile } from '../../shared/types';
-import { apiRequest } from '../api/client';
+import { apiRequest } from '../lib/api';
 
 interface AuthContextType {
   user: SafeUser | null;

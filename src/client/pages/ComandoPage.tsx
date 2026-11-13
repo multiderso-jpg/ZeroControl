@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { apiRequest } from '../api/client';
+import { apiRequest } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import { Badge } from '../components/UI';
 import { Terminal, Activity, ShieldCheck, Database, HardDrive, Lock, BarChart3 } from 'lucide-react';

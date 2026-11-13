@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Modal, Button, Input, Textarea, Select } from './UI';
 import { useAuth } from '../context/AuthContext';
 import { UserAvatar } from './UserAvatar';
-import { apiRequest } from '../api/client';
-import { Camera, Trash2, KeyRound, User as UserIcon } from 'lucide-react';
+import { apiRequest } from '../lib/api';
+import { Camera, Trash2, KeyRound, User as UserIcon, ZoomIn, ZoomOut, Check, X } from 'lucide-react';
 
 interface ProfileModalProps {
   isOpen: boolean;
@@ -28,10 +28,34 @@ export function ProfileModal({
   const [profileSuccess, setProfileSuccess] = useState<string | null>(null);
 
   // Avatar
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
-  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [loadedImage, setLoadedImage] = useState<HTMLImageElement | null>(null);
+  const [scale, setScale] = useState<number>(1);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [avatarError, setAvatarError] = useState<string | null>(null);
+
+  // Redesenhar canvas sempre que a imagem ou a escala mudar
+  useEffect(() => {
+    if (!loadedImage || !canvasRef.current) return;
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    const nw = loadedImage.naturalWidth;
+    const nh = loadedImage.naturalHeight;
+    const baseScale = Math.max(canvas.width / nw, canvas.height / nh);
+    const finalScale = baseScale * scale;
+    const drawW = nw * finalScale;
+    const drawH = nh * finalScale;
+    const drawX = (canvas.width - drawW) / 2;
+    const drawY = (canvas.height - drawH) / 2;
+
+    ctx.drawImage(loadedImage, drawX, drawY, drawW, drawH);
+  }, [loadedImage, scale]);
 
   // Segurança (Senha)
   const [currentPassword, setCurrentPassword] = useState('');
@@ -45,29 +69,57 @@ export function ProfileModal({
   const handleAvatarSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files?.[0]) return;
     const file = e.target.files[0];
-    if (file.size > 5 * 1024 * 1024) {
-      setAvatarError('A fotografia deve ter no máximo 5 MB.');
+    if (file.size > 15 * 1024 * 1024) {
+      setAvatarError('A fotografia original deve ter no máximo 15 MB.');
       return;
     }
-    setAvatarFile(file);
-    setAvatarPreview(URL.createObjectURL(file));
+
     setAvatarError(null);
+    setAvatarFile(file);
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        setLoadedImage(img);
+        setScale(1);
+      };
+      img.src = event.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+    // Limpar o valor do input para permitir selecionar o mesmo arquivo novamente
+    e.target.value = '';
   };
 
   const handleUploadAvatar = async () => {
-    if (!avatarFile) return;
+    if (!canvasRef.current) return;
     setIsUploadingAvatar(true);
     setAvatarError(null);
-    try {
-      await uploadAvatar(avatarFile);
-      setAvatarFile(null);
-      setAvatarPreview(null);
-      setProfileSuccess('Fotografia de avatar atualizada com sucesso!');
-    } catch (err: any) {
-      setAvatarError(err.message || 'Erro ao enviar foto.');
-    } finally {
-      setIsUploadingAvatar(false);
-    }
+
+    canvasRef.current.toBlob(async (blob) => {
+      if (!blob) {
+        setIsUploadingAvatar(false);
+        setAvatarError('Erro ao processar imagem.');
+        return;
+      }
+      try {
+        const fileToUpload = new File([blob], 'avatar.jpg', { type: 'image/jpeg' });
+        await uploadAvatar(fileToUpload);
+        setLoadedImage(null);
+        setAvatarFile(null);
+        setProfileSuccess('Fotografia de avatar atualizada com sucesso!');
+      } catch (err: any) {
+        setAvatarError(err.message || 'Erro ao enviar foto.');
+      } finally {
+        setIsUploadingAvatar(false);
+      }
+    }, 'image/jpeg', 0.9);
+  };
+
+  const handleCancelCrop = () => {
+    setLoadedImage(null);
+    setAvatarFile(null);
+    setAvatarError(null);
   };
 
   const handleRemoveAvatar = async () => {
@@ -75,7 +127,7 @@ export function ProfileModal({
       return;
     try {
       await removeAvatar();
-      setAvatarPreview(null);
+      setLoadedImage(null);
       setAvatarFile(null);
       setProfileSuccess('Foto removida com sucesso.');
     } catch (err: any) {
@@ -221,62 +273,111 @@ export function ProfileModal({
               </div>
             )}
 
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              onChange={handleAvatarSelect}
+              className="hidden"
+            />
+
             <div className="flex flex-col items-center justify-center p-6 bg-zinc-950 border border-zinc-800 rounded-xl">
-              <div className="relative mb-3">
-                <UserAvatar
-                  username={user.username}
-                  avatarUrl={avatarPreview || user.avatar_url}
-                  size="xl"
-                />
-              </div>
+              {loadedImage ? (
+                <div className="flex flex-col items-center w-full">
+                  <div className="relative mb-3 flex items-center justify-center">
+                    <canvas
+                      ref={canvasRef}
+                      width={512}
+                      height={512}
+                      className="w-44 h-44 rounded-full border-2 border-zinc-100 shadow-2xl bg-black"
+                    />
+                  </div>
 
-              <div className="text-center text-xs text-zinc-400 max-w-xs mb-4">
-                Envie uma imagem JPEG, PNG ou WebP de até 5 MB. Os metadados serão removidos e uma versão otimizada de 512x512 será gerada.
-              </div>
+                  <div className="w-full max-w-xs space-y-1.5 mb-5 bg-zinc-900/90 p-3 rounded-lg border border-zinc-800">
+                    <div className="flex justify-between text-xs text-zinc-200 font-medium">
+                      <span>Ajustar Escala / Zoom</span>
+                      <span className="font-mono text-zinc-400">{Math.round(scale * 100)}%</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <ZoomOut className="w-4 h-4 text-zinc-400" />
+                      <input
+                        type="range"
+                        min="0.5"
+                        max="3.0"
+                        step="0.05"
+                        value={scale}
+                        onChange={(e) => setScale(parseFloat(e.target.value))}
+                        className="w-full accent-white cursor-pointer h-1.5 bg-zinc-700 rounded-lg"
+                      />
+                      <ZoomIn className="w-4 h-4 text-zinc-400" />
+                    </div>
+                    <p className="text-[10px] text-zinc-400 text-center pt-1">
+                      Arraste para ampliar ou reduzir e enquadrar perfeitamente seu avatar.
+                    </p>
+                  </div>
 
-              <div className="flex flex-wrap items-center justify-center gap-2">
-                <label className="cursor-pointer">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="sm"
-                    icon={<Camera className="w-4 h-4" />}
-                    onClick={() => {}}
-                  >
-                    Escolher foto
-                  </Button>
-                  <input
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp"
-                    onChange={handleAvatarSelect}
-                    className="hidden"
-                  />
-                </label>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="primary"
+                      size="sm"
+                      isLoading={isUploadingAvatar}
+                      icon={<Check className="w-4 h-4" />}
+                      onClick={handleUploadAvatar}
+                    >
+                      Salvar foto recortada
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      icon={<X className="w-4 h-4" />}
+                      onClick={handleCancelCrop}
+                      disabled={isUploadingAvatar}
+                    >
+                      Cancelar
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="relative mb-3">
+                    <UserAvatar
+                      username={user.username}
+                      avatarUrl={user.avatar_url}
+                      size="xl"
+                    />
+                  </div>
 
-                {avatarFile && (
-                  <Button
-                    type="button"
-                    variant="primary"
-                    size="sm"
-                    isLoading={isUploadingAvatar}
-                    onClick={handleUploadAvatar}
-                  >
-                    Confirmar envio
-                  </Button>
-                )}
+                  <div className="text-center text-xs text-zinc-400 max-w-xs mb-4">
+                    Envie uma fotografia em JPEG, PNG ou WebP. Você poderá ajustar o tamanho e enquadramento antes de salvar.
+                  </div>
 
-                {user.avatar_url && !avatarFile && (
-                  <Button
-                    type="button"
-                    variant="danger"
-                    size="sm"
-                    icon={<Trash2 className="w-4 h-4" />}
-                    onClick={handleRemoveAvatar}
-                  >
-                    Remover foto
-                  </Button>
-                )}
-              </div>
+                  <div className="flex flex-wrap items-center justify-center gap-2">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      icon={<Camera className="w-4 h-4" />}
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      Escolher foto
+                    </Button>
+
+                    {user.avatar_url && (
+                      <Button
+                        type="button"
+                        variant="danger"
+                        size="sm"
+                        icon={<Trash2 className="w-4 h-4" />}
+                        onClick={handleRemoveAvatar}
+                      >
+                        Remover foto
+                      </Button>
+                    )}
+                  </div>
+                </>
+              )}
             </div>
           </div>
         )}

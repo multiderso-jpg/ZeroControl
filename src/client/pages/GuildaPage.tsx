@@ -7,7 +7,7 @@ import {
   INTENTIONS,
   MODALITIES,
 } from '../../shared/constants';
-import { apiRequest } from '../api/client';
+import { apiRequest } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import { PostCard } from '../components/PostCard';
 import { PostDetailModal } from '../components/PostDetailModal';
@@ -19,12 +19,13 @@ import {
   RotateCcw,
   PlusCircle,
   Clock,
-  Sparkles,
+  Briefcase,
   Send,
   ShieldAlert,
   ChevronLeft,
   ChevronRight,
   FilterX,
+  Layers,
 } from 'lucide-react';
 
 export function GuildaPage() {
@@ -42,7 +43,7 @@ export function GuildaPage() {
     (searchParams.get('ordem') as any) || 'recent'
   );
 
-  // Estados de dados
+  // Estados de dados exclusivamente reais
   const [posts, setPosts] = useState<Post[]>([]);
   const [totalPosts, setTotalPosts] = useState(0);
   const [currentPage, setCurrentPage] = useState(parseInt(searchParams.get('pagina') || '1', 10));
@@ -50,7 +51,7 @@ export function GuildaPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
 
-  // Painel lateral de candidaturas e missões rápidas
+  // Painel lateral de candidaturas reais
   const [myApplications, setMyApplications] = useState<Application[]>([]);
 
   // Modais
@@ -70,7 +71,7 @@ export function GuildaPage() {
       if (selectedCity) queryParams.set('city', selectedCity);
       queryParams.set('sort', selectedSort);
       queryParams.set('page', currentPage.toString());
-      queryParams.set('limit', '12');
+      queryParams.set('limit', '10');
 
       const data = await apiRequest<{
         posts: Post[];
@@ -94,7 +95,9 @@ export function GuildaPage() {
     try {
       const data = await apiRequest<{ applications: Application[] }>('/api/applications/my');
       setMyApplications(data.applications.slice(0, 5));
-    } catch {}
+    } catch {
+      setMyApplications([]);
+    }
   };
 
   useEffect(() => {
@@ -145,22 +148,23 @@ export function GuildaPage() {
 
   return (
     <div className="space-y-6 text-left">
-      {/* Cabeçalho da Guilda */}
+      {/* Cabeçalho de Job´s */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-zinc-800">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white flex items-center gap-2">
-            Mural da Guilda
-            <Badge variant="silver">{totalPosts} oportunidades</Badge>
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white flex items-center gap-3">
+            <Briefcase className="w-7 h-7 text-zinc-300" />
+            Mural de Job´s
+            <Badge variant="silver" className="text-xs px-2.5 py-1">{totalPosts} ativos</Badge>
           </h1>
-          <p className="text-xs text-zinc-400 mt-1">
-            Espaço central para oferta e busca de serviços, contratações e parcerias da comunidade.
+          <p className="text-xs sm:text-sm text-zinc-400 mt-1">
+            Espaço central para publicação, contratação e acompanhamento de Job´s e serviços da comunidade.
           </p>
         </div>
 
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
-            size="sm"
+            size="md"
             className="md:hidden"
             icon={<SlidersHorizontal className="w-4 h-4" />}
             onClick={() => setShowMobileFilters(!showMobileFilters)}
@@ -170,172 +174,57 @@ export function GuildaPage() {
 
           <Button
             variant="primary"
-            size="sm"
-            icon={<PlusCircle className="w-4 h-4" />}
+            size="md"
+            icon={<PlusCircle className="w-5 h-5" />}
             onClick={() => setIsPublishOpen(true)}
           >
-            Publicar trabalho
+            Publicar Job
           </Button>
         </div>
       </div>
 
-      {/* Abas Rápidas de Intenção */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
-        <button
-          onClick={() => {
-            setSelectedIntention('todas');
-            setCurrentPage(1);
-          }}
-          className={`px-3.5 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors cursor-pointer ${
-            selectedIntention === 'todas'
-              ? 'bg-zinc-100 text-zinc-950 font-semibold'
-              : 'bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white'
-          }`}
-        >
-          Todas as intenções
-        </button>
-
-        {INTENTIONS.map((item) => (
-          <button
-            key={item}
-            onClick={() => {
-              setSelectedIntention(item);
-              setCurrentPage(1);
-            }}
-            className={`px-3.5 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors cursor-pointer ${
-              selectedIntention === item
-                ? 'bg-zinc-100 text-zinc-950 font-semibold'
-                : 'bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white'
-            }`}
-          >
-            {item}
-          </button>
-        ))}
-      </div>
-
-      {/* Barra de Busca e Filtros Contextuais */}
-      <div
-        className={`p-4 bg-zinc-900/60 border border-zinc-800 rounded-xl space-y-3 ${
-          showMobileFilters ? 'block' : 'hidden md:block'
-        }`}
-      >
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          <Input
-            placeholder="Buscar por palavras-chave..."
-            value={searchTerm}
-            onChange={(e) => {
-              setSearchTerm(e.target.value);
-              setCurrentPage(1);
-            }}
-            rightElement={<Search className="w-4 h-4" />}
-          />
-
-          <Select
-            options={[
-              { value: '', label: 'Todos os tipos (24 opções)' },
-              ...OPPORTUNITY_TYPES.map((t) => ({ value: t.slug, label: t.name })),
-            ]}
-            value={selectedType}
-            onChange={(e) => {
-              setSelectedType(e.target.value);
-              setCurrentPage(1);
-            }}
-          />
-
-          <Select
-            options={[
-              { value: '', label: 'Todas as áreas (24 opções)' },
-              ...SERVICE_CATEGORIES.map((c) => ({ value: c.slug, label: c.name })),
-            ]}
-            value={selectedCategory}
-            onChange={(e) => {
-              setSelectedCategory(e.target.value);
-              setCurrentPage(1);
-            }}
-          />
-
-          <Select
-            options={[
-              { value: '', label: 'Todas as modalidades' },
-              ...MODALITIES.map((m) => ({ value: m, label: m })),
-            ]}
-            value={selectedModality}
-            onChange={(e) => {
-              setSelectedModality(e.target.value);
-              setCurrentPage(1);
-            }}
-          />
-        </div>
-
-        <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-zinc-800/60 text-xs">
-          <div className="flex items-center gap-2">
-            <span className="text-zinc-400">Ordenar por:</span>
-            <button
-              onClick={() => setSelectedSort('recent')}
-              className={`px-2.5 py-1 rounded text-xs transition-colors cursor-pointer ${
-                selectedSort === 'recent'
-                  ? 'bg-zinc-800 text-white font-semibold'
-                  : 'text-zinc-500 hover:text-zinc-300'
-              }`}
-            >
-              Mais recentes
-            </button>
-            <button
-              onClick={() => setSelectedSort('deadline')}
-              className={`px-2.5 py-1 rounded text-xs transition-colors cursor-pointer ${
-                selectedSort === 'deadline'
-                  ? 'bg-zinc-800 text-white font-semibold'
-                  : 'text-zinc-500 hover:text-zinc-300'
-              }`}
-            >
-              Proximidade do prazo
-            </button>
-          </div>
-
-          <Button
-            variant="ghost"
-            size="sm"
-            icon={<RotateCcw className="w-3.5 h-3.5" />}
-            onClick={handleClearFilters}
-          >
-            Limpar filtros
-          </Button>
-        </div>
-      </div>
-
-      {/* Conteúdo Principal: Mural Central + Painel Complementar Lateral */}
+      {/* Conteúdo Principal: Mural de Cards (Exibido no topo, logo abaixo do cabeçalho) */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
-        {/* Mural de Cards (3 colunas no desktop) */}
+        {/* Janelas onde ficam as tasks / Job´s (1.5x maiores em largura e altura) */}
         <div className="lg:col-span-3 space-y-6">
           {isLoading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-              {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+              {[1, 2, 3, 4].map((i) => (
                 <div
                   key={i}
-                  className="h-72 rounded-xl bg-zinc-900/50 border border-zinc-800 animate-pulse"
+                  className="h-96 rounded-2xl bg-zinc-900/50 border border-zinc-800 animate-pulse"
                 />
               ))}
             </div>
           ) : posts.length === 0 ? (
-            <div className="p-12 text-center border border-dashed border-zinc-800 rounded-2xl bg-zinc-900/20">
-              <FilterX className="w-10 h-10 text-zinc-600 mx-auto mb-3" />
-              <h3 className="text-sm font-semibold text-zinc-300">
-                Nenhuma oportunidade encontrada
+            <div className="p-16 text-center border border-dashed border-zinc-800 rounded-2xl bg-zinc-900/20">
+              <FilterX className="w-12 h-12 text-zinc-600 mx-auto mb-4" />
+              <h3 className="text-base font-bold text-zinc-200">
+                Nenhum Job encontrado
               </h3>
-              <p className="text-xs text-zinc-500 mt-1 max-w-sm mx-auto">
-                Tente ajustar os filtros, buscar por outros termos ou publique uma nova oportunidade para a Guilda.
+              <p className="text-xs sm:text-sm text-zinc-400 mt-1.5 max-w-md mx-auto">
+                Não há registros com estes filtros no momento. Seja o primeiro a publicar um Job ou ajuste seus critérios de busca.
               </p>
-              <Button
-                variant="outline"
-                size="sm"
-                className="mt-4"
-                onClick={handleClearFilters}
-              >
-                Limpar todos os filtros
-              </Button>
+              <div className="flex items-center justify-center gap-3 mt-6">
+                <Button
+                  variant="outline"
+                  size="md"
+                  onClick={handleClearFilters}
+                >
+                  Limpar filtros
+                </Button>
+                <Button
+                  variant="primary"
+                  size="md"
+                  icon={<PlusCircle className="w-4 h-4" />}
+                  onClick={() => setIsPublishOpen(true)}
+                >
+                  Publicar Job
+                </Button>
+              </div>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
               {posts.map((post) => (
                 <PostCard
                   key={post.id}
@@ -354,7 +243,7 @@ export function GuildaPage() {
           {totalPages > 1 && (
             <div className="flex items-center justify-between pt-4 border-t border-zinc-800 text-xs text-zinc-400">
               <span>
-                Página {currentPage} de {totalPages} ({totalPosts} resultados)
+                Página {currentPage} de {totalPages} ({totalPosts} Job´s ativos)
               </span>
               <div className="flex items-center gap-2">
                 <Button
@@ -380,36 +269,36 @@ export function GuildaPage() {
           )}
         </div>
 
-        {/* Painel Complementar Lateral (Desktop) */}
+        {/* Painel Complementar Lateral (Desktop) - Apenas dados reais */}
         <div className="space-y-4 hidden lg:block">
-          {/* Minhas Candidaturas Rápidas */}
+          {/* Minhas Candidaturas Reais */}
           {user && (
-            <div className="p-4 rounded-xl bg-zinc-900/70 border border-zinc-800 space-y-3">
+            <div className="p-5 rounded-2xl bg-zinc-900/70 border border-zinc-800 space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold uppercase tracking-wider text-zinc-300 flex items-center gap-1.5">
                   <Send className="w-3.5 h-3.5 text-zinc-400" />
                   Minhas Candidaturas
                 </span>
-                <span className="text-[11px] font-mono text-zinc-500">
+                <span className="text-xs font-mono font-bold text-zinc-400">
                   {myApplications.length}
                 </span>
               </div>
 
               {myApplications.length === 0 ? (
-                <p className="text-xs text-zinc-500">
-                  Você ainda não enviou interesse para oportunidades abertas.
+                <p className="text-xs text-zinc-500 py-1">
+                  Você ainda não possui candidaturas registradas em Job´s abertos.
                 </p>
               ) : (
-                <div className="space-y-2">
+                <div className="space-y-2 pt-1">
                   {myApplications.map((app) => (
                     <div
                       key={app.id}
-                      className="p-2.5 rounded-lg bg-zinc-950 border border-zinc-800/80 text-xs"
+                      className="p-3 rounded-xl bg-zinc-950 border border-zinc-800/80 text-xs"
                     >
-                      <p className="font-medium text-zinc-200 line-clamp-1">
+                      <p className="font-semibold text-zinc-200 line-clamp-1">
                         {app.post_title}
                       </p>
-                      <div className="flex items-center justify-between mt-1 text-[11px] text-zinc-500">
+                      <div className="flex items-center justify-between mt-1.5 text-[11px] text-zinc-500">
                         <span>@{app.author_username}</span>
                         <Badge
                           variant={
@@ -430,24 +319,147 @@ export function GuildaPage() {
             </div>
           )}
 
-          {/* Destaque Institucional Phantom Troupe */}
-          <div className="p-4 rounded-xl bg-gradient-to-b from-zinc-900 to-zinc-950 border border-zinc-800 space-y-2.5">
-            <div className="flex items-center gap-1.5 text-xs font-mono uppercase tracking-wider text-zinc-400">
-              <Sparkles className="w-3.5 h-3.5 text-zinc-300" />
-              Forja • Phantom Troupe
+          {/* Resumo Operacional Real */}
+          <div className="p-5 rounded-2xl bg-zinc-900/40 border border-zinc-800 space-y-2.5 text-xs text-zinc-400">
+            <div className="flex items-center gap-2 text-zinc-200 font-semibold">
+              <Layers className="w-4 h-4 text-zinc-400" />
+              Base de Dados Real
             </div>
-            <p className="text-xs text-zinc-300 leading-relaxed">
-              Necessita de engenharia dedicada ou serviços institucionais especializados?
+            <p className="text-zinc-400 leading-relaxed text-[11px]">
+              O mural exibe exclusivamente registros reais persistidos em PostgreSQL. Cada publicação possui autor verificado por sessão protegida.
             </p>
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full text-xs"
+          </div>
+        </div>
+      </div>
+
+      {/* Seção Inferior: Abas de Intenção e Filtros de Busca */}
+      <div className="pt-6 border-t border-zinc-800/80 space-y-4">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-mono uppercase tracking-wider text-zinc-400">
+            Filtros e Critérios de Busca de Job´s
+          </span>
+        </div>
+
+        {/* Abas Rápidas de Intenção */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
+          <button
+            onClick={() => {
+              setSelectedIntention('todas');
+              setCurrentPage(1);
+            }}
+            className={`px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors cursor-pointer ${
+              selectedIntention === 'todas'
+                ? 'bg-zinc-100 text-zinc-950 shadow-sm'
+                : 'bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white'
+            }`}
+          >
+            Todos os Job´s
+          </button>
+
+          {INTENTIONS.map((item) => (
+            <button
+              key={item}
               onClick={() => {
-                window.location.href = '/forja';
+                setSelectedIntention(item);
+                setCurrentPage(1);
               }}
+              className={`px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors cursor-pointer ${
+                selectedIntention === item
+                  ? 'bg-zinc-100 text-zinc-950 shadow-sm'
+                  : 'bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white'
+              }`}
             >
-              Consultar Catálogo da Forja
+              {item}
+            </button>
+          ))}
+        </div>
+
+        {/* Barra de Busca e Filtros Contextuais */}
+        <div
+          className={`p-5 bg-zinc-900/60 border border-zinc-800 rounded-2xl space-y-4 ${
+            showMobileFilters ? 'block' : 'hidden md:block'
+          }`}
+        >
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Input
+              placeholder="Buscar por título ou descrição..."
+              value={searchTerm}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setCurrentPage(1);
+              }}
+              rightElement={<Search className="w-4 h-4" />}
+            />
+
+            <Select
+              options={[
+                { value: '', label: 'Todos os tipos (24 opções)' },
+                ...OPPORTUNITY_TYPES.map((t) => ({ value: t.slug, label: t.name })),
+              ]}
+              value={selectedType}
+              onChange={(e) => {
+                setSelectedType(e.target.value);
+                setCurrentPage(1);
+              }}
+            />
+
+            <Select
+              options={[
+                { value: '', label: 'Todas as áreas (24 opções)' },
+                ...SERVICE_CATEGORIES.map((c) => ({ value: c.slug, label: c.name })),
+              ]}
+              value={selectedCategory}
+              onChange={(e) => {
+                setSelectedCategory(e.target.value);
+                setCurrentPage(1);
+              }}
+            />
+
+            <Select
+              options={[
+                { value: '', label: 'Todas as modalidades' },
+                ...MODALITIES.map((m) => ({ value: m, label: m })),
+              ]}
+              value={selectedModality}
+              onChange={(e) => {
+                setSelectedModality(e.target.value);
+                setCurrentPage(1);
+              }}
+            />
+          </div>
+
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-zinc-800/60 text-xs">
+            <div className="flex items-center gap-2">
+              <span className="text-zinc-400 font-medium">Ordenar por:</span>
+              <button
+                onClick={() => setSelectedSort('recent')}
+                className={`px-3 py-1.5 rounded-lg text-xs transition-colors cursor-pointer ${
+                  selectedSort === 'recent'
+                    ? 'bg-zinc-800 text-white font-semibold'
+                    : 'text-zinc-500 hover:text-zinc-300'
+                }`}
+              >
+                Mais recentes
+              </button>
+              <button
+                onClick={() => setSelectedSort('deadline')}
+                className={`px-3 py-1.5 rounded-lg text-xs transition-colors cursor-pointer ${
+                  selectedSort === 'deadline'
+                    ? 'bg-zinc-800 text-white font-semibold'
+                    : 'text-zinc-500 hover:text-zinc-300'
+                }`}
+              >
+                Proximidade do prazo
+              </button>
+            </div>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              icon={<RotateCcw className="w-3.5 h-3.5" />}
+              onClick={handleClearFilters}
+            >
+              Limpar filtros
             </Button>
           </div>
         </div>
@@ -462,9 +474,14 @@ export function GuildaPage() {
           setActivePost(updated);
           setPosts((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
         }}
+        onPostDeleted={(deletedId) => {
+          setIsDetailOpen(false);
+          setActivePost(null);
+          setPosts((prev) => prev.filter((p) => p.id !== deletedId));
+          setTotalPosts((t) => Math.max(0, t - 1));
+        }}
         onOpenReport={(id, title) => {
           setIsDetailOpen(false);
-          // O layout lida com o modal de denúncia
           const ev = new CustomEvent('open-report', { detail: { id, title } });
           window.dispatchEvent(ev);
         }}

@@ -41,14 +41,15 @@ export class AuthService {
 
     const passwordHash = await argon2.hash(passwordPlain, ARGON2_OPTIONS);
     const userId = uuidv4();
+    const userRole = usernameNormalized === 'phantomtroupe' ? 'administrador' : 'membro';
 
     return await db.transaction(async (tx) => {
       // Inserção com restrição única tratada no banco
       const userRes = await tx.query<SafeUser>(
         `INSERT INTO users (id, username, username_normalized, password_hash, role, status)
-         VALUES ($1, $2, $3, $4, 'membro', 'ativo')
+         VALUES ($1, $2, $3, $4, $5, 'ativo')
          RETURNING id, username, role, created_at`,
-        [userId, username, usernameNormalized, passwordHash]
+        [userId, username, usernameNormalized, passwordHash, userRole]
       );
 
       const newUser = userRes.rows[0];

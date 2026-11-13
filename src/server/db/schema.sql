@@ -135,6 +135,18 @@ CREATE TABLE IF NOT EXISTS saved_posts (
   CONSTRAINT uq_saved_post UNIQUE (user_id, post_id)
 );
 
+-- 10.1 Post Comments (Comentários nos Job´s)
+CREATE TABLE IF NOT EXISTS post_comments (
+  id UUID PRIMARY KEY,
+  post_id UUID NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+  author_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  content TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_post_comments_post_id ON post_comments(post_id);
+CREATE INDEX IF NOT EXISTS idx_post_comments_created_at ON post_comments(created_at ASC);
+
 -- 11. Reports (Conselho / Moderação)
 CREATE TABLE IF NOT EXISTS reports (
   id UUID PRIMARY KEY,

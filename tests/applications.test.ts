@@ -56,7 +56,7 @@ describe('Candidaturas e Seleção Transacional - Zero Control', () => {
       .set('Cookie', authorCookie)
       .set('X-CSRF-Token', authorCsrf)
       .send({
-        intention: 'Preciso de um serviço',
+        intention: 'Oportunidade de serviços',
         title: 'Criação de Identidade Visual Completa',
         description: 'Preciso de designer sênior para desenvolver o manual de marca, logotipo e tipografia.',
         opportunity_type_slug: 'freelancer',

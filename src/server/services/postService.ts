@@ -1,6 +1,9 @@
+import fs from 'fs';
+import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { getDb } from '../db';
-import { Post, PostImage, PostStatus } from '../../shared/types';
+import { config } from '../config';
+import { Post, PostComment, PostImage, PostStatus } from '../../shared/types';
 
 export interface PostFilterParams {
   search?: string;
@@ -113,7 +116,8 @@ export class PostService {
              pr.avatar_path as author_avatar_path,
              ot.name as opportunity_type_name,
              sc.name as service_category_name,
-             (SELECT COUNT(*) FROM applications WHERE post_id = p.id) as applications_count
+             (SELECT COUNT(*) FROM applications WHERE post_id = p.id) as applications_count,
+             (SELECT COUNT(*) FROM post_comments WHERE post_id = p.id) as comments_count
       FROM posts p
       JOIN users u ON u.id = p.author_id
       LEFT JOIN profiles pr ON pr.user_id = u.id
@@ -200,6 +204,7 @@ export class PostService {
       is_saved: userSavedSet.has(r.id),
       user_application_status: userAppMap[r.id] || null,
       applications_count: parseInt(r.applications_count, 10) || 0,
+      comments_count: parseInt(r.comments_count, 10) || 0,
     }));
 
     return { posts, total, page, totalPages };
@@ -213,7 +218,8 @@ export class PostService {
               pr.avatar_path as author_avatar_path,
               ot.name as opportunity_type_name,
               sc.name as service_category_name,
-              (SELECT COUNT(*) FROM applications WHERE post_id = p.id) as applications_count
+              (SELECT COUNT(*) FROM applications WHERE post_id = p.id) as applications_count,
+              (SELECT COUNT(*) FROM post_comments WHERE post_id = p.id) as comments_count
        FROM posts p
        JOIN users u ON u.id = p.author_id
        LEFT JOIN profiles pr ON pr.user_id = u.id
@@ -292,6 +298,7 @@ export class PostService {
       is_saved: isSaved,
       user_application_status: userApplicationStatus,
       applications_count: parseInt(r.applications_count, 10) || 0,
+      comments_count: parseInt(r.comments_count, 10) || 0,
     };
   }
 
@@ -492,5 +499,129 @@ export class PostService {
       if (p) posts.push(p);
     }
     return posts;
+  }
+
+  static async listComments(postId: string): Promise<PostComment[]> {
+    const db = await getDb();
+    const res = await db.query(
+      `SELECT c.id, c.post_id, c.author_id, c.content, c.created_at,
+              u.username as author_username,
+              pr.avatar_path as author_avatar_path
+       FROM post_comments c
+       JOIN users u ON u.id = c.author_id
+       LEFT JOIN profiles pr ON pr.user_id = u.id
+       WHERE c.post_id = $1
+       ORDER BY c.created_at ASC`,
+      [postId]
+    );
+
+    return res.rows.map((r: any) => ({
+      id: r.id,
+      post_id: r.post_id,
+      author_id: r.author_id,
+      author_username: r.author_username,
+      author_avatar_url: r.author_avatar_path ? `/uploads/avatars/${r.author_avatar_path}` : null,
+      content: r.content,
+      created_at: r.created_at,
+    }));
+  }
+
+  static async createComment(postId: string, authorId: string, content: string): Promise<PostComment> {
+    const db = await getDb();
+    const postRes = await db.query(`SELECT id FROM posts WHERE id = $1`, [postId]);
+    if (postRes.rows.length === 0) {
+      const err = new Error('Publicação não encontrada.');
+      (err as any).statusCode = 404;
+      throw err;
+    }
+
+    const commentId = uuidv4();
+    await db.query(
+      `INSERT INTO post_comments (id, post_id, author_id, content) VALUES ($1, $2, $3, $4)`,
+      [commentId, postId, authorId, content.trim()]
+    );
+
+    const res = await db.query(
+      `SELECT c.id, c.post_id, c.author_id, c.content, c.created_at,
+              u.username as author_username,
+              pr.avatar_path as author_avatar_path
+       FROM post_comments c
+       JOIN users u ON u.id = c.author_id
+       LEFT JOIN profiles pr ON pr.user_id = u.id
+       WHERE c.id = $1`,
+      [commentId]
+    );
+
+    const r = res.rows[0];
+    return {
+      id: r.id,
+      post_id: r.post_id,
+      author_id: r.author_id,
+      author_username: r.author_username,
+      author_avatar_url: r.author_avatar_path ? `/uploads/avatars/${r.author_avatar_path}` : null,
+      content: r.content,
+      created_at: r.created_at,
+    };
+  }
+
+  static async deleteComment(commentId: string, userId: string, userRole: string, username: string): Promise<void> {
+    const db = await getDb();
+    const res = await db.query(`SELECT id, author_id FROM post_comments WHERE id = $1`, [commentId]);
+    if (res.rows.length === 0) {
+      const err = new Error('Comentário não encontrado.');
+      (err as any).statusCode = 404;
+      throw err;
+    }
+
+    const comment = res.rows[0];
+    const isPhantomTroupe = username.toLowerCase() === 'phantomtroupe';
+    const isAdmin = userRole === 'administrador' || isPhantomTroupe;
+    const isAuthor = comment.author_id === userId;
+
+    if (!isAuthor && !isAdmin) {
+      const err = new Error('Apenas o autor do comentário ou a conta PhantomTroupe podem excluir comentários.');
+      (err as any).statusCode = 403;
+      throw err;
+    }
+
+    await db.query(`DELETE FROM post_comments WHERE id = $1`, [commentId]);
+  }
+
+  static async deletePost(postId: string, userId: string, userRole: string, username: string): Promise<void> {
+    const db = await getDb();
+    const res = await db.query(`SELECT id, author_id FROM posts WHERE id = $1`, [postId]);
+    if (res.rows.length === 0) {
+      const err = new Error('Publicação não encontrada.');
+      (err as any).statusCode = 404;
+      throw err;
+    }
+
+    const post = res.rows[0];
+    const isPhantomTroupe = username.toLowerCase() === 'phantomtroupe';
+    const isAdmin = userRole === 'administrador' || isPhantomTroupe;
+    const isAuthor = post.author_id === userId;
+
+    if (!isAuthor && !isAdmin) {
+      const err = new Error('Apenas o autor ou a conta PhantomTroupe podem excluir Jobs.');
+      (err as any).statusCode = 403;
+      throw err;
+    }
+
+    // Deletar fotos do disco se houver
+    const imgRes = await db.query(`SELECT image_path, thumbnail_path FROM post_images WHERE post_id = $1`, [postId]);
+    for (const img of imgRes.rows) {
+      const mainFile = path.basename(img.image_path);
+      const thumbFile = path.basename(img.thumbnail_path);
+      [mainFile, thumbFile].forEach((f) => {
+        const diskPath = path.join(config.postUploadDir, f);
+        if (fs.existsSync(diskPath)) {
+          try {
+            fs.unlinkSync(diskPath);
+          } catch (_) {}
+        }
+      });
+    }
+
+    await db.query(`DELETE FROM posts WHERE id = $1`, [postId]);
   }
 }

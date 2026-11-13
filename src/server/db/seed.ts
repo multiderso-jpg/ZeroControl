@@ -111,6 +111,9 @@ export async function runSeeds() {
     }
   }
 
+  // 6. Garantir permissões de administrador para a conta PhantomTroupe
+  await db.query(`UPDATE users SET role = 'administrador' WHERE LOWER(username) = 'phantomtroupe'`);
+
   console.log('[SEED] Seeds aplicados com sucesso!');
 }
 

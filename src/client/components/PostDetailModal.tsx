@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, Button, Textarea, Input, Badge } from './UI';
-import { Post, Application } from '../../shared/types';
+import { Post, Application, PostComment } from '../../shared/types';
 import { useAuth } from '../context/AuthContext';
-import { apiRequest } from '../api/client';
+import { apiRequest } from '../lib/api';
 import { UserAvatar } from './UserAvatar';
 import { formatCompensation, formatRelativeDate } from './PostCard';
 import {
@@ -17,6 +17,8 @@ import {
   XCircle,
   Users,
   Check,
+  MessageSquare,
+  Trash2,
 } from 'lucide-react';
 
 interface PostDetailModalProps {
@@ -24,6 +26,7 @@ interface PostDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
   onPostUpdated: (updatedPost: Post) => void;
+  onPostDeleted?: (postId: string) => void;
   onOpenReport: (postId: string, postTitle: string) => void;
 }
 
@@ -32,6 +35,7 @@ export function PostDetailModal({
   isOpen,
   onClose,
   onPostUpdated,
+  onPostDeleted,
   onOpenReport,
 }: PostDetailModalProps) {
   const { user } = useAuth();
@@ -49,13 +53,97 @@ export function PostDetailModal({
   const [isLoadingApplicants, setIsLoadingApplicants] = useState(false);
   const [isSelecting, setIsSelecting] = useState<string | null>(null);
 
-  const isAuthor = user && post && user.id === post.author_id;
+  // Estados de comentários
+  const [comments, setComments] = useState<PostComment[]>([]);
+  const [isLoadingComments, setIsLoadingComments] = useState(false);
+  const [commentContent, setCommentContent] = useState('');
+  const [isPostingComment, setIsPostingComment] = useState(false);
+  const [isDeletingComment, setIsDeletingComment] = useState<string | null>(null);
+
+  // Estado de exclusão do post
+  const [isDeletingPost, setIsDeletingPost] = useState(false);
+
+  const isAuthor = Boolean(user && post && user.id === post.author_id);
+  const isPhantomTroupe = Boolean(
+    user && (user.username.toLowerCase() === 'phantomtroupe' || user.role === 'administrador')
+  );
+  const canDeletePost = Boolean(user && (isAuthor || isPhantomTroupe));
 
   useEffect(() => {
-    if (isOpen && post && isAuthor) {
-      loadApplicants();
+    if (isOpen && post) {
+      loadComments();
+      if (isAuthor) {
+        loadApplicants();
+      }
     }
   }, [isOpen, post?.id, isAuthor]);
+
+  const loadComments = async () => {
+    if (!post) return;
+    setIsLoadingComments(true);
+    try {
+      const data = await apiRequest<{ comments: PostComment[] }>(`/api/posts/${post.id}/comments`);
+      setComments(data.comments || []);
+    } catch {
+      setComments([]);
+    } finally {
+      setIsLoadingComments(false);
+    }
+  };
+
+  const handlePostComment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!commentContent.trim() || !post) return;
+    setIsPostingComment(true);
+    try {
+      const data = await apiRequest<{ comment: PostComment }>(`/api/posts/${post.id}/comments`, {
+        method: 'POST',
+        body: JSON.stringify({ content: commentContent.trim() }),
+      });
+      setComments((prev) => [...prev, data.comment]);
+      setCommentContent('');
+      onPostUpdated({
+        ...post,
+        comments_count: (post.comments_count || 0) + 1,
+      });
+    } catch (err: any) {
+      alert(err.message || 'Erro ao publicar comentário.');
+    } finally {
+      setIsPostingComment(false);
+    }
+  };
+
+  const handleDeleteComment = async (commentId: string) => {
+    if (!confirm('Deseja excluir este comentário?')) return;
+    setIsDeletingComment(commentId);
+    try {
+      await apiRequest(`/api/posts/${post!.id}/comments/${commentId}`, { method: 'DELETE' });
+      setComments((prev) => prev.filter((c) => c.id !== commentId));
+      onPostUpdated({
+        ...post!,
+        comments_count: Math.max(0, (post!.comments_count || 1) - 1),
+      });
+    } catch (err: any) {
+      alert(err.message || 'Erro ao excluir comentário.');
+    } finally {
+      setIsDeletingComment(null);
+    }
+  };
+
+  const handleDeletePost = async () => {
+    if (!post) return;
+    if (!confirm('Tem certeza de que deseja excluir permanentemente este Job?')) return;
+    setIsDeletingPost(true);
+    try {
+      await apiRequest(`/api/posts/${post.id}`, { method: 'DELETE' });
+      onPostDeleted?.(post.id);
+      onClose();
+    } catch (err: any) {
+      alert(err.message || 'Erro ao excluir Job.');
+    } finally {
+      setIsDeletingPost(false);
+    }
+  };
 
   const loadApplicants = async () => {
     if (!post) return;
@@ -164,7 +252,7 @@ export function PostDetailModal({
       isOpen={isOpen}
       onClose={onClose}
       title={post.title}
-      description={`Publicado por @${post.author_username} na Guilda`}
+      description={`Trabalho publicado por @${post.author_username} • Job´s`}
       maxWidth="4xl"
     >
       <div className="space-y-6 text-left">
@@ -247,7 +335,7 @@ export function PostDetailModal({
           </div>
         </div>
 
-        {/* Informações do Autor */}
+        {/* Informações do Autor e Ações */}
         <div className="flex items-center justify-between p-3 rounded-xl bg-zinc-950 border border-zinc-800">
           <div className="flex items-center gap-3">
             <UserAvatar username={post.author_username} avatarUrl={post.author_avatar_url} size="md" />
@@ -259,16 +347,30 @@ export function PostDetailModal({
             </div>
           </div>
 
-          {!isAuthor && (
-            <Button
-              variant="ghost"
-              size="sm"
-              icon={<ShieldAlert className="w-4 h-4 text-zinc-400" />}
-              onClick={() => onOpenReport(post.id, post.title)}
-            >
-              Denunciar ao Conselho
-            </Button>
-          )}
+          <div className="flex items-center gap-2">
+            {!isAuthor && (
+              <Button
+                variant="ghost"
+                size="sm"
+                icon={<ShieldAlert className="w-4 h-4 text-zinc-400" />}
+                onClick={() => onOpenReport(post.id, post.title)}
+              >
+                Denunciar ao Conselho
+              </Button>
+            )}
+
+            {canDeletePost && (
+              <Button
+                variant="danger"
+                size="sm"
+                icon={<Trash2 className="w-4 h-4" />}
+                isLoading={isDeletingPost}
+                onClick={handleDeletePost}
+              >
+                Excluir Job
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* Seção do Autor: Gerenciamento e Seleção de Candidatos */}
@@ -426,6 +528,103 @@ export function PostDetailModal({
             )}
           </div>
         )}
+
+        {/* Seção de Comentários nos Job´s */}
+        <div className="pt-4 border-t border-zinc-800 space-y-4">
+          <div className="flex items-center justify-between">
+            <h4 className="text-sm font-semibold text-white flex items-center gap-2">
+              <MessageSquare className="w-4 h-4 text-zinc-400" />
+              Comentários ({comments.length})
+            </h4>
+          </div>
+
+          {/* Lista de Comentários */}
+          {isLoadingComments ? (
+            <div className="text-xs text-zinc-500 py-3 text-center">Carregando comentários...</div>
+          ) : comments.length === 0 ? (
+            <div className="p-3 bg-zinc-950/60 rounded-xl border border-zinc-800/80 text-xs text-zinc-400 text-center">
+              Nenhum comentário publicado ainda neste Job. Seja o primeiro a comentar!
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {comments.map((comment) => {
+                const canDeleteThisComment = Boolean(
+                  user && (user.id === comment.author_id || isPhantomTroupe)
+                );
+                return (
+                  <div
+                    key={comment.id}
+                    className="p-3 rounded-xl bg-zinc-950 border border-zinc-800 flex items-start justify-between gap-3"
+                  >
+                    <div className="flex items-start gap-3">
+                      <UserAvatar
+                        username={comment.author_username}
+                        avatarUrl={comment.author_avatar_url}
+                        size="sm"
+                      />
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-semibold text-white">
+                            @{comment.author_username}
+                          </span>
+                          <span className="text-[10px] text-zinc-500 font-mono">
+                            {formatRelativeDate(comment.created_at)}
+                          </span>
+                        </div>
+                        <p className="text-xs text-zinc-300 leading-relaxed whitespace-pre-wrap">
+                          {comment.content}
+                        </p>
+                      </div>
+                    </div>
+
+                    {canDeleteThisComment && (
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteComment(comment.id)}
+                        disabled={isDeletingComment === comment.id}
+                        aria-label="Excluir comentário"
+                        className="text-zinc-500 hover:text-red-400 p-1 rounded-md hover:bg-zinc-900 transition-colors shrink-0 cursor-pointer"
+                        title="Excluir comentário (Autor ou ADM PhantomTroupe)"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Formulário para novo comentário */}
+          {user ? (
+            <form onSubmit={handlePostComment} className="space-y-2 pt-2">
+              <Textarea
+                placeholder="Escreva uma dúvida, observação ou comentário sobre este Job..."
+                value={commentContent}
+                onChange={(e) => setCommentContent(e.target.value)}
+                rows={2}
+                maxLength={1000}
+                required
+              />
+              <div className="flex justify-end">
+                <Button
+                  type="submit"
+                  variant="primary"
+                  size="sm"
+                  isLoading={isPostingComment}
+                  disabled={!commentContent.trim()}
+                  icon={<Send className="w-3.5 h-3.5" />}
+                >
+                  Comentar
+                </Button>
+              </div>
+            </form>
+          ) : (
+            <p className="text-xs text-zinc-500 text-center py-2">
+              Entre em sua conta para participar dos comentários deste Job.
+            </p>
+          )}
+        </div>
       </div>
     </Modal>
   );

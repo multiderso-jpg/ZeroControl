@@ -72,6 +72,17 @@ export interface Post {
   is_saved?: boolean;
   user_application_status?: ApplicationStatus | null;
   applications_count?: number;
+  comments_count?: number;
+}
+
+export interface PostComment {
+  id: string;
+  post_id: string;
+  author_id: string;
+  author_username: string;
+  author_avatar_url: string | null;
+  content: string;
+  created_at: string;
 }
 
 export interface Application {
