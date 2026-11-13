@@ -54,6 +54,7 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   error?: string;
   helperText?: string;
   rightElement?: ReactNode;
+  centerLabel?: boolean;
 }
 
 export function Input({
@@ -61,6 +62,7 @@ export function Input({
   error,
   helperText,
   rightElement,
+  centerLabel = false,
   className = '',
   id,
   ...props
@@ -70,7 +72,7 @@ export function Input({
   return (
     <div className="flex flex-col gap-1 w-full text-left">
       {label && (
-        <label htmlFor={inputId} className="text-xs font-medium text-zinc-300">
+        <label htmlFor={inputId} className={`text-xs font-medium text-zinc-300 ${centerLabel ? 'text-center block w-full' : ''}`}>
           {label}
         </label>
       )}
@@ -101,12 +103,14 @@ interface TextareaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
   label?: string;
   error?: string;
   helperText?: string;
+  centerLabel?: boolean;
 }
 
 export function Textarea({
   label,
   error,
   helperText,
+  centerLabel = false,
   className = '',
   id,
   ...props
@@ -116,7 +120,7 @@ export function Textarea({
   return (
     <div className="flex flex-col gap-1 w-full text-left">
       {label && (
-        <label htmlFor={inputId} className="text-xs font-medium text-zinc-300">
+        <label htmlFor={inputId} className={`text-xs font-medium text-zinc-300 ${centerLabel ? 'text-center block w-full' : ''}`}>
           {label}
         </label>
       )}
@@ -140,12 +144,14 @@ interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
   label?: string;
   error?: string;
   options: { value: string | number; label: string }[];
+  centerLabel?: boolean;
 }
 
 export function Select({
   label,
   error,
   options,
+  centerLabel = false,
   className = '',
   id,
   ...props
@@ -155,7 +161,7 @@ export function Select({
   return (
     <div className="flex flex-col gap-1 w-full text-left">
       {label && (
-        <label htmlFor={inputId} className="text-xs font-medium text-zinc-300">
+        <label htmlFor={inputId} className={`text-xs font-medium text-zinc-300 ${centerLabel ? 'text-center block w-full' : ''}`}>
           {label}
         </label>
       )}
@@ -211,6 +217,7 @@ interface ModalProps {
   description?: string;
   children: ReactNode;
   maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '4xl';
+  centerTitle?: boolean;
 }
 
 export function Modal({
@@ -220,6 +227,7 @@ export function Modal({
   description,
   children,
   maxWidth = 'lg',
+  centerTitle = false,
 }: ModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
@@ -274,8 +282,8 @@ export function Modal({
         tabIndex={-1}
         className={`w-full ${maxWidthClasses[maxWidth]} bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl p-6 text-zinc-100 relative focus:outline-none max-h-[90vh] flex flex-col`}
       >
-        <div className="flex items-start justify-between pb-3 border-b border-zinc-800">
-          <div>
+        <div className={`flex items-start ${centerTitle ? 'justify-center relative' : 'justify-between'} pb-3 border-b border-zinc-800`}>
+          <div className={centerTitle ? 'text-center w-full px-8' : ''}>
             <h2 id="modal-title" className="text-lg font-semibold tracking-tight text-white">
               {title}
             </h2>
@@ -286,7 +294,9 @@ export function Modal({
           <button
             onClick={onClose}
             aria-label="Fechar janela modal"
-            className="p-1 rounded-md text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors cursor-pointer"
+            className={`p-1 rounded-md text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors cursor-pointer ${
+              centerTitle ? 'absolute right-0 top-0' : ''
+            }`}
           >
             <X className="w-5 h-5" />
           </button>

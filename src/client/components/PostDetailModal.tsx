@@ -19,6 +19,8 @@ import {
   Check,
   MessageSquare,
   Trash2,
+  ExternalLink,
+  Globe,
 } from 'lucide-react';
 
 interface PostDetailModalProps {
@@ -333,6 +335,32 @@ export function PostDetailModal({
           <div className="text-sm text-zinc-200 leading-relaxed whitespace-pre-line p-4 rounded-xl bg-zinc-900/40 border border-zinc-800">
             {post.description}
           </div>
+
+          {/* Links de Referência Detectados */}
+          {post.description.match(/(https?:\/\/[^\s]+)/g) && (
+            <div className="mt-3 p-3 bg-zinc-950 border border-zinc-800 rounded-xl space-y-2">
+              <span className="text-[11px] font-mono uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
+                <Globe className="w-3.5 h-3.5 text-zinc-300" />
+                Link de Referência / Portfólio Anexo
+              </span>
+              <div className="space-y-1.5">
+                {Array.from(new Set(post.description.match(/(https?:\/\/[^\s]+)/g))).map((url, idx) => (
+                  <div key={idx} className="flex items-center justify-between p-2.5 rounded-lg bg-zinc-900 border border-zinc-800 text-xs">
+                    <span className="font-mono text-zinc-300 truncate max-w-sm sm:max-w-md">{url}</span>
+                    <a
+                      href={url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-white font-medium flex items-center gap-1.5 shrink-0 ml-2 border border-zinc-700 transition-colors"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                      Acessar link
+                    </a>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Informações do Autor e Ações */}
