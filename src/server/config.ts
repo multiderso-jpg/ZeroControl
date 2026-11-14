@@ -9,9 +9,15 @@ export const config = {
   pgliteDir: process.env.PGLITE_DIR || path.resolve(process.cwd(), 'data/pglite'),
   sessionSecret: process.env.SESSION_SECRET || 'zerocontrol_secret_key_session_must_be_random_in_prod',
   csrfSecret: process.env.CSRF_SECRET || 'zerocontrol_csrf_token_secret_32bytes_value',
-  uploadDir: path.resolve(process.cwd(), process.env.UPLOAD_DIR || 'uploads'),
-  avatarUploadDir: path.resolve(process.cwd(), process.env.UPLOAD_DIR || 'uploads', 'avatars'),
-  postUploadDir: path.resolve(process.cwd(), process.env.UPLOAD_DIR || 'uploads', 'posts'),
+  uploadDir: process.env.VERCEL
+    ? '/tmp/uploads'
+    : path.resolve(process.cwd(), process.env.UPLOAD_DIR || 'uploads'),
+  avatarUploadDir: process.env.VERCEL
+    ? '/tmp/uploads/avatars'
+    : path.resolve(process.cwd(), process.env.UPLOAD_DIR || 'uploads', 'avatars'),
+  postUploadDir: process.env.VERCEL
+    ? '/tmp/uploads/posts'
+    : path.resolve(process.cwd(), process.env.UPLOAD_DIR || 'uploads', 'posts'),
   sessionDurationDays: 30,
   maxAvatarSizeBytes: 5 * 1024 * 1024, // 5 MB
   maxPostImageSizeBytes: 8 * 1024 * 1024, // 8 MB

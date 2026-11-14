@@ -123,10 +123,12 @@ export async function getDb(): Promise<DbInterface> {
   if (dbInstance) return dbInstance;
 
   if (config.databaseUrl && config.databaseUrl.trim().length > 0) {
+    const isSupabase = config.databaseUrl.includes('supabase.com') || config.databaseUrl.includes('pooler.supabase.com');
     const pool = new pg.Pool({
       connectionString: config.databaseUrl,
-      max: 20,
+      max: process.env.VERCEL ? 3 : 20,
       idleTimeoutMillis: 30000,
+      ssl: isSupabase ? { rejectUnauthorized: false } : undefined,
     });
     dbInstance = new PgPoolDb(pool);
   } else {
