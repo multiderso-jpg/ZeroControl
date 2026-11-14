@@ -7,4 +7,10 @@ data/*
 .env
 *.log
 .vercel
+scripts/deploy-supabase.ts
+
+
+
+.vercel
+scripts/deploy-supabase.ts
 
