@@ -1,6 +1,5 @@
 import fs from 'fs';
 import path from 'path';
-import { PGlite } from '@electric-sql/pglite';
 import pg from 'pg';
 import { config } from '../config';
 
@@ -17,14 +16,14 @@ export interface DbInterface {
 }
 
 class PGliteDb implements DbInterface {
-  private pglite: PGlite;
+  private pglite: any;
 
-  constructor(pglite: PGlite) {
+  constructor(pglite: any) {
     this.pglite = pglite;
   }
 
   async query<T = any>(sql: string, params?: any[]): Promise<DbQueryResult<T>> {
-    const res = await this.pglite.query<T>(sql, params || []);
+    const res = await this.pglite.query(sql, params || []);
     return {
       rows: (res.rows || []) as T[],
       rowCount: res.affectedRows ?? res.rows?.length ?? 0,
@@ -36,10 +35,10 @@ class PGliteDb implements DbInterface {
   }
 
   async transaction<T>(callback: (tx: DbInterface) => Promise<T>): Promise<T> {
-    return await this.pglite.transaction(async (tx) => {
+    return await this.pglite.transaction(async (tx: any) => {
       const txWrapper: DbInterface = {
         query: async <R = any>(sql: string, params?: any[]) => {
-          const res = await tx.query<R>(sql, params || []);
+          const res = await tx.query(sql, params || []);
           return {
             rows: (res.rows || []) as R[],
             rowCount: res.affectedRows ?? res.rows?.length ?? 0,
@@ -132,6 +131,7 @@ export async function getDb(): Promise<DbInterface> {
     });
     dbInstance = new PgPoolDb(pool);
   } else {
+    const { PGlite } = await import('@electric-sql/pglite');
     fs.mkdirSync(config.pgliteDir, { recursive: true });
     const pglite = new PGlite(config.pgliteDir);
     dbInstance = new PGliteDb(pglite);

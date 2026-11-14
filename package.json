@@ -8,7 +8,7 @@
     "dev:server": "tsx watch src/server/index.ts",
     "dev:client": "vite",
     "build:client": "tsc && vite build",
-    "build:server": "esbuild src/server/vercel-handler.ts --bundle --platform=node --target=node20 --format=esm --outfile=api/index.js --external:pg-native --external:@node-rs/argon2 --external:sharp --external:@electric-sql/pglite",
+    "build:server": "esbuild src/server/vercel-handler.ts --bundle --platform=node --target=node20 --format=esm --banner:js=\"import { createRequire } from 'node:module'; const require = createRequire(import.meta.url);\" --outfile=api/index.js --external:pg-native --external:@node-rs/argon2 --external:sharp --external:@electric-sql/pglite",
     "build": "npm run build:client && npm run build:server",
     "test": "vitest run",
     "test:watch": "vitest",

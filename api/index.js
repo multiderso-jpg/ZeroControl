@@ -1,3 +1,4 @@
+import { createRequire } from 'node:module'; const require = createRequire(import.meta.url);
 var __create = Object.create;
 var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
@@ -43413,7 +43414,6 @@ var v4_default = v4;
 
 // src/server/db/index.ts
 import fs from "fs";
-import { PGlite } from "@electric-sql/pglite";
 
 // node_modules/pg/esm/index.mjs
 var import_lib = __toESM(require_lib5(), 1);
@@ -43535,6 +43535,7 @@ async function getDb() {
     });
     dbInstance = new PgPoolDb(pool);
   } else {
+    const { PGlite } = await import("@electric-sql/pglite");
     fs.mkdirSync(config.pgliteDir, { recursive: true });
     const pglite = new PGlite(config.pgliteDir);
     dbInstance = new PGliteDb(pglite);
